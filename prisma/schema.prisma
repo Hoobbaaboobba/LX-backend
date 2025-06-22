@@ -1,56 +1,138 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
-enum Role {
-    CREATOR
+enum UserRole {
+    LEXUS
     ADMIN
-    USER
+    MEMBER
 }
 
 model User {
-  id       String @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    id        String   @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  name     String
-  email    String @unique
-  password String
-  members  Member[]
-  organizations Organization[] @relation("UserOrganizations")
+    name     String
+    email    String  @unique
+    password String?
+
+    githubId     String? @unique
+    githubAvatar String?
+
+    role     UserRole     @default(MEMBER)
+    projects Project[]    @relation("UserProjects")
+    tasks    Task[]
+    teams    TeamMember[]
+
+    @@map("users")
 }
 
-model Member {
-  id            String @id @unique @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Project {
+    id String @id @default(uuid())
 
-  role          Role
-  user          User @relation(fields: [userId], references: [id])
-  userId        String
-  organization  Organization @relation(fields: [organizationId], references: [id])
-  organizationId String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    title    String
+    progress Int      @default(0)
+    dueDate  DateTime @default(now())
+    users    User[]   @relation("UserProjects")
+    tasks    Task[]
+
+    @@map("projects")
 }
 
-model Organization {
-  id         String @id @unique @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Priority {
+    LOW
+    MEDIUM
+    HIGH
+}
 
-  name       String
-  creator    User @relation("UserOrganizations", fields: [creatorId], references: [id])
-  creatorId  String
-  inviteLink String
-  members    Member[]
+enum TaskStatus {
+    TODO
+    IN_PROGRESS
+    DONE
+}
+
+model Task {
+    id String @id @default(uuid())
+
+    title       String
+    description String
+    priority    Priority
+    status      TaskStatus @default(TODO)
+    project     Project    @relation(fields: [projectId], references: [id])
+    projectId   String
+    dueDate     DateTime   @default(now())
+    progress    Int        @default(0)
+
+    assignee   User?   @relation(fields: [assigneeId], references: [id])
+    assigneeId String?
+
+    @@map("tasks")
+}
+
+model Team {
+    id        String   @id @default(uuid())
+    name      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    members TeamMember[]
+    sites   Site[]
+
+    teamInvites TeamInvite[]
+
+    @@map("teams")
+}
+
+enum TeamMemberRole {
+    ADMIN
+    MEMBER
+}
+
+model TeamMember {
+    id     String         @id @default(uuid())
+    userId String
+    teamId String
+    role   TeamMemberRole @default(MEMBER)
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, teamId])
+    @@map("team_members")
+}
+
+model TeamInvite {
+    id     String @id @default(uuid())
+    teamId String
+    team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+    token     String?        @unique
+    role      TeamMemberRole @default(MEMBER)
+    expiresAt DateTime?
+    createdAt DateTime       @default(now())
+
+    @@map("team_invites")
+}
+
+model Site {
+    id     String @id @default(uuid())
+    name   String
+    domain String @default(uuid())
+
+    teamId String
+    team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("sites")
 }

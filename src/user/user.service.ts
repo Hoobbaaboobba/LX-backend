@@ -28,6 +28,10 @@ export class UserService {
     const profile = await this.getById(id);
     return profile;
   }
+  async getAllProfiles() {
+    const profiles = await this.prisma.user.findMany();
+    return profiles;
+  }
 
   async create(dto: AuthDto) {
     const user = {

@@ -1,14 +1,18 @@
-version: '3.5'
+version: '3.8'
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: nest-docker-postgres
+  postgres:
+    image: postgres:latest
+    container_name: postgres-container
     environment:
-      - PORT=${PORT}
+      POSTGRES_USER: lx
+      POSTGRES_PASSWORD: lx-password
+      POSTGRES_DB: lx-online
     ports:
-      - '3000:3000'
+      - '5432:5432'
     volumes:
-      - ./src:/app/src
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    driver: local
